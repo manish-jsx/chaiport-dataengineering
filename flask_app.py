@@ -1511,4 +1511,4 @@ if __name__ == '__main__':
     
     # Start Flask app
     port = int(os.environ.get('PORT', 8080))
-    gunicorn flask_app:app --workers=4 --threads=2 --timeout=60 --bind=0.0.0.0:$PORT --log-level=info --access-logfile='-'
+    gunicorn -w 1 -b 0.0.0.0:$PORT flask_app:app
