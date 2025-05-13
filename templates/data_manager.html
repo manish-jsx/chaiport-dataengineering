@@ -1,0 +1,337 @@
+{% extends "base.html" %}
+{% block title %}Data Manager{% endblock %}
+
+{% block head_extra %}
+<style>
+    .stats-card {
+        border-left: 4px solid;
+        transition: transform 0.2s;
+    }
+    
+    .stats-card:hover {
+        transform: translateY(-5px);
+    }
+    
+    .stats-card.waitlist {
+        border-left-color: #28a745;
+    }
+    
+    .stats-card.newsletter {
+        border-left-color: #17a2b8;
+    }
+    
+    .stats-number {
+        font-size: 2.5rem;
+        font-weight: 700;
+    }
+    
+    .export-section {
+        background-color: #f8f9fa;
+        border-radius: 8px;
+        padding: 25px;
+        margin-bottom: 30px;
+    }
+    
+    .export-title {
+        display: flex;
+        align-items: center;
+        margin-bottom: 20px;
+    }
+    
+    .export-title i {
+        font-size: 1.8rem;
+        margin-right: 10px;
+    }
+    
+    .tab-content {
+        padding: 20px;
+        border: 1px solid #dee2e6;
+        border-top: none;
+        border-radius: 0 0 0.25rem 0.25rem;
+    }
+    
+    .upload-area {
+        border: 2px dashed #ccc;
+        border-radius: 5px;
+        padding: 25px;
+        text-align: center;
+        background: #f8f9fa;
+        margin-bottom: 20px;
+    }
+    
+    .upload-area:hover {
+        border-color: #28a745;
+    }
+    
+    .list-group-item {
+        transition: all 0.2s;
+    }
+    
+    .list-group-item:hover {
+        background-color: #f8f9fa;
+    }
+    
+    .form-section {
+        border: 1px solid #eee;
+        border-radius: 8px;
+        padding: 20px;
+        margin-bottom: 20px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1><i class="fas fa-database mr-2"></i>Data Manager</h1>
+    </div>
+    
+    <!-- Stats Row -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card stats-card waitlist mb-4">
+                <div class="card-body">
+                    <h5 class="card-title text-success">Waitlist Entries</h5>
+                    <div class="stats-number">{{ waitlist_count|default(0) }}</div>
+                    <p class="card-text">Users waiting for platform access</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card stats-card newsletter mb-4">
+                <div class="card-body">
+                    <h5 class="card-title text-info">Newsletter Subscribers</h5>
+                    <div class="stats-number">{{ newsletter_count|default(0) }}</div>
+                    <p class="card-text">Active email subscribers</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Tabs for different admin functions -->
+    <ul class="nav nav-tabs" id="adminTabs" role="tablist">
+        <li class="nav-item">
+            <a class="nav-link active" id="export-tab" data-toggle="tab" href="#export" role="tab">
+                <i class="fas fa-file-export mr-1"></i> Export Data
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" id="add-waitlist-tab" data-toggle="tab" href="#add-waitlist" role="tab">
+                <i class="fas fa-user-plus mr-1"></i> Add to Waitlist
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" id="add-newsletter-tab" data-toggle="tab" href="#add-newsletter" role="tab">
+                <i class="fas fa-envelope-open mr-1"></i> Add to Newsletter
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" id="bulk-upload-tab" data-toggle="tab" href="#bulk-upload" role="tab">
+                <i class="fas fa-upload mr-1"></i> Bulk Upload
+            </a>
+        </li>
+    </ul>
+    
+    <div class="tab-content" id="adminTabsContent">
+        <!-- Export Tab -->
+        <div class="tab-pane fade show active" id="export" role="tabpanel">
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="export-section">
+                        <div class="export-title">
+                            <i class="fas fa-users text-success"></i>
+                            <h3>Waitlist Management</h3>
+                        </div>
+                        <p>Export the complete waitlist data for offline analysis or integration with marketing tools.</p>
+                        <a href="{{ url_for('export_data', collection_name='waitlist') }}" class="btn btn-success">
+                            <i class="fas fa-file-csv mr-2"></i>Export Waitlist as CSV
+                        </a>
+                    </div>
+                </div>
+                
+                <div class="col-md-6">
+                    <div class="export-section">
+                        <div class="export-title">
+                            <i class="fas fa-envelope-open-text text-primary"></i>
+                            <h3>Newsletter Subscribers</h3>
+                        </div>
+                        <p>Download subscriber data for your email marketing campaigns or CRM integration.</p>
+                        <a href="{{ url_for('export_data', collection_name='newsletter') }}" class="btn btn-primary">
+                            <i class="fas fa-file-csv mr-2"></i>Export Subscribers as CSV
+                        </a>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="alert alert-info mt-4">
+                <i class="fas fa-info-circle mr-2"></i>
+                <strong>Note:</strong> This is a data engineering portal and backend tool for the chaiport.in website where users subscribe to newsletters and join the waitlist. Here we can view and export data for migration purposes.
+            </div>
+        </div>
+        
+        <!-- Add to Waitlist Tab -->
+        <div class="tab-pane fade" id="add-waitlist" role="tabpanel">
+            <div class="form-section">
+                <h4 class="mb-3">Add to Waitlist</h4>
+                <form method="POST" action="{{ url_for('add_to_waitlist') }}">
+                    <div class="form-group">
+                        <label for="email"><i class="fas fa-envelope mr-2"></i>Email</label>
+                        <input type="email" class="form-control" id="email" name="email" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="name"><i class="fas fa-user mr-2"></i>Name</label>
+                        <input type="text" class="form-control" id="name" name="name" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="role"><i class="fas fa-briefcase mr-2"></i>Role</label>
+                        <select class="form-control" id="role" name="role" required>
+                            <option value="" selected disabled>Select role</option>
+                            <option value="Tea Producer">Tea Producer</option>
+                            <option value="Tea Trader">Tea Trader</option>
+                            <option value="Tea Retailer">Tea Retailer</option>
+                            <option value="Distributor">Distributor</option>
+                            <option value="Consultant">Consultant</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label><i class="fas fa-tags mr-2"></i>Interests</label>
+                        <div class="custom-control custom-checkbox">
+                            <input type="checkbox" class="custom-control-input" id="interest_selling" name="interests" value="Selling">
+                            <label class="custom-control-label" for="interest_selling">Selling</label>
+                        </div>
+                        <div class="custom-control custom-checkbox">
+                            <input type="checkbox" class="custom-control-input" id="interest_buying" name="interests" value="Buying">
+                            <label class="custom-control-label" for="interest_buying">Buying</label>
+                        </div>
+                        <div class="custom-control custom-checkbox">
+                            <input type="checkbox" class="custom-control-input" id="interest_networking" name="interests" value="Networking">
+                            <label class="custom-control-label" for="interest_networking">Networking</label>
+                        </div>
+                        <div class="custom-control custom-checkbox">
+                            <input type="checkbox" class="custom-control-input" id="interest_learning" name="interests" value="Learning">
+                            <label class="custom-control-label" for="interest_learning">Learning</label>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <div class="custom-control custom-checkbox">
+                            <input type="checkbox" class="custom-control-input" id="subscribe_newsletter" name="subscribe_newsletter" checked>
+                            <label class="custom-control-label" for="subscribe_newsletter">
+                                Also subscribe to newsletter updates
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-success">
+                        <i class="fas fa-plus-circle mr-2"></i>Add to Waitlist
+                    </button>
+                </form>
+            </div>
+        </div>
+        
+        <!-- Add to Newsletter Tab -->
+        <div class="tab-pane fade" id="add-newsletter" role="tabpanel">
+            <div class="form-section">
+                <h4 class="mb-3">Add Newsletter Subscription</h4>
+                <form method="POST" action="{{ url_for('add_to_newsletter') }}">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="first_name"><i class="fas fa-user mr-2"></i>First Name</label>
+                                <input type="text" class="form-control" id="first_name" name="first_name" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="last_name"><i class="fas fa-user mr-2"></i>Last Name</label>
+                                <input type="text" class="form-control" id="last_name" name="last_name" required>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="email"><i class="fas fa-envelope mr-2"></i>Email</label>
+                        <input type="email" class="form-control" id="email" name="email" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="company_name"><i class="fas fa-building mr-2"></i>Company Name</label>
+                        <input type="text" class="form-control" id="company_name" name="company_name">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="business_type"><i class="fas fa-store mr-2"></i>Business Type</label>
+                        <select class="form-control" id="business_type" name="business_type" required>
+                            <option value="" selected disabled>Select business type</option>
+                            <option value="Tea producer">Tea producer</option>
+                            <option value="Wholesaler">Wholesaler</option>
+                            <option value="Retailer">Retailer</option>
+                            <option value="Service provider">Service provider</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-plus-circle mr-2"></i>Add Subscriber
+                    </button>
+                </form>
+            </div>
+        </div>
+        
+        <!-- Bulk Upload Tab -->
+        <div class="tab-pane fade" id="bulk-upload" role="tabpanel">
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="upload-area">
+                        <h4><i class="fas fa-users text-success mr-2"></i>Bulk Upload Waitlist</h4>
+                        <p>Upload a CSV file with waitlist entries. The CSV should have columns: email, name, role, interests.</p>
+                        <form method="POST" action="{{ url_for('upload_csv', collection_name='waitlist') }}" enctype="multipart/form-data">
+                            <div class="form-group">
+                                <div class="custom-file">
+                                    <input type="file" class="custom-file-input" id="waitlistFile" name="csv_file" accept=".csv" required>
+                                    <label class="custom-file-label" for="waitlistFile">Choose waitlist CSV file</label>
+                                </div>
+                            </div>
+                            <button type="submit" class="btn btn-success mt-3">
+                                <i class="fas fa-upload mr-2"></i>Upload Waitlist Data
+                            </button>
+                        </form>
+                    </div>
+                </div>
+                
+                <div class="col-md-6">
+                    <div class="upload-area">
+                        <h4><i class="fas fa-envelope text-primary mr-2"></i>Bulk Upload Newsletter Subscribers</h4>
+                        <p>Upload a CSV file with newsletter subscribers. The CSV should have columns: email, first_name, last_name, company_name, business_type.</p>
+                        <form method="POST" action="{{ url_for('upload_csv', collection_name='newsletter') }}" enctype="multipart/form-data">
+                            <div class="form-group">
+                                <div class="custom-file">
+                                    <input type="file" class="custom-file-input" id="newsletterFile" name="csv_file" accept=".csv" required>
+                                    <label class="custom-file-label" for="newsletterFile">Choose newsletter CSV file</label>
+                                </div>
+                            </div>
+                            <button type="submit" class="btn btn-primary mt-3">
+                                <i class="fas fa-upload mr-2"></i>Upload Newsletter Data
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Update custom file input label with filename
+    $('.custom-file-input').on('change', function() {
+        var fileName = $(this).val().split('\\').pop();
+        $(this).next('.custom-file-label').html(fileName);
+    });
+</script>
+{% endblock %}

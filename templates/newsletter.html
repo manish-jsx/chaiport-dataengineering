@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+{% block title %}Create Account{% endblock %}
+
+{% block head_extra %}
+<style>
+    .account-container {
+        max-width: 650px;
+        margin: 0 auto;
+        padding: 30px;
+        background-color: #fff;
+        box-shadow: 0 0 20px rgba(0,0,0,0.1);
+        border-radius: 10px;
+    }
+    
+    .account-header {
+        text-align: center;
+        margin-bottom: 30px;
+    }
+    
+    .account-header h1 {
+        color: #17a2b8;
+        font-weight: 700;
+        margin-bottom: 15px;
+    }
+    
+    .name-row {
+        display: flex;
+        gap: 15px;
+    }
+    
+    .name-row .form-group {
+        flex: 1;
+    }
+    
+    .submit-btn {
+        margin-top: 25px;
+        padding: 12px 30px;
+        font-size: 1.1rem;
+        font-weight: 600;
+    }
+    
+    .form-note {
+        color: #6c757d;
+        margin-top: 5px;
+        font-size: 0.9rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="account-container">
+        <div class="account-header">
+            <h1><i class="fas fa-user-plus mr-2"></i> Create an Account</h1>
+            <p>Enter your details to create your Chai Connect account</p>
+        </div>
+        
+        {% if success_message %}
+        <div class="alert alert-success">
+            <i class="fas fa-check-circle mr-2"></i> {{ success_message }}
+        </div>
+        {% endif %}
+        
+        <form method="POST" action="{{ url_for('newsletter') }}">
+            <div class="name-row">
+                <div class="form-group">
+                    <label for="first_name"><i class="fas fa-user mr-2"></i>First name</label>
+                    <input type="text" class="form-control" id="first_name" name="first_name" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="last_name"><i class="fas fa-user mr-2"></i>Last name</label>
+                    <input type="text" class="form-control" id="last_name" name="last_name" required>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label for="email"><i class="fas fa-envelope mr-2"></i>Email</label>
+                <input type="email" class="form-control" id="email" name="email" placeholder="m@example.com" required>
+                <small class="form-note">We'll send updates and newsletter to this email</small>
+            </div>
+            
+            <div class="form-group">
+                <label for="company_name"><i class="fas fa-building mr-2"></i>Company name</label>
+                <input type="text" class="form-control" id="company_name" name="company_name">
+            </div>
+            
+            <div class="form-group">
+                <label for="business_type"><i class="fas fa-store mr-2"></i>Business type</label>
+                <select class="form-control" id="business_type" name="business_type" required>
+                    <option value="" selected disabled>Select business type</option>
+                    <option value="Tea producer">Tea producer</option>
+                    <option value="Wholesaler">Wholesaler</option>
+                    <option value="Retailer">Retailer</option>
+                    <option value="Service provider">Service provider</option>
+                    <option value="Other">Other</option>
+                </select>
+                <small class="form-note">This is a data engineering portal and backend tool for chaiport.in website</small>
+            </div>
+            
+            <button type="submit" class="btn btn-primary btn-block submit-btn">
+                <i class="fas fa-user-check mr-2"></i>Create Account
+            </button>
+        </form>
+    </div>
+</div>
+{% endblock %}

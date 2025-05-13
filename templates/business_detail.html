@@ -1,0 +1,18 @@
+
+    {% extends "base.html" %}
+    {% block title %}{{ business['Business Name'] }}{% endblock %}
+    {% block content %}
+        <h1>{{ business['Business Name'] }}</h1>
+        <p><strong>ID:</strong> {{ business['_id'] }}</p>
+        <p><strong>Type:</strong> {{ business['Type'] }}</p>
+        <p><strong>Location:</strong> {{ business['Location'] }}</p>
+        <p><strong>Region:</strong> {{ business['Region'] }}</p>
+        <p><strong>Website:</strong> <a href="{{ business['Website'] }}" target="_blank">{{ business['Website'] }}</a></p>
+        <p><strong>Description:</strong> {{ business['Description'] }}</p>
+        <p><strong>Contact Info:</strong> {{ business['Contact Info'] }}</p>
+        <p><strong>Combined Text for Embedding (Sample):</strong> {{ business['combined_text_for_embedding'][:200] }}...</p>
+        <p><strong>Vector Embedding (Sample):</strong> {{ business['vector_embedding'][:5] if business['vector_embedding'] }}...</p>
+        <a href="{{ url_for('edit_business', business_id=business['_id']|string) }}" class="btn btn-primary">Edit</a>
+        <a href="{{ url_for('index') }}" class="btn btn-secondary">Back to List</a>
+    {% endblock %}
+    

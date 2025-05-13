@@ -1,0 +1,40 @@
+
+    {% extends "base.html" %}
+    {% block title %}Add New Business{% endblock %}
+    {% block content %}
+        <h1>Add New Tea Business</h1>
+        <form method="POST">
+            
+        <div class="form-group">
+            <label for="business_name">Business Name</label>
+            <input type="text" class="form-control" id="business_name" name="business_name" value="{{ business['Business Name'] if business else '' }}" required>
+        </div>
+        <div class="form-group">
+            <label for="website">Website</label>
+            <input type="url" class="form-control" id="website" name="website" value="{{ business['Website'] if business else '' }}">
+        </div>
+        <div class="form-group">
+            <label for="location">Location</label>
+            <input type="text" class="form-control" id="location" name="location" value="{{ business['Location'] if business else '' }}">
+        </div>
+        <div class="form-group">
+            <label for="type">Type</label>
+            <input type="text" class="form-control" id="type" name="type" value="{{ business['Type'] if business else '' }}">
+        </div>
+        <div class="form-group">
+            <label for="description">Description</label>
+            <textarea class="form-control" id="description" name="description" rows="3">{{ business['Description'] if business else '' }}</textarea>
+        </div>
+        <div class="form-group">
+            <label for="contact_info">Contact Info</label>
+            <input type="text" class="form-control" id="contact_info" name="contact_info" value="{{ business['Contact Info'] if business else '' }}">
+        </div>
+        <div class="form-group">
+            <label for="region">Region</label>
+            <input type="text" class="form-control" id="region" name="region" value="{{ business['Region'] if business else '' }}">
+        </div>
+    
+            <button type="submit" class="btn btn-success">Add Business</button>
+        </form>
+    {% endblock %}
+    

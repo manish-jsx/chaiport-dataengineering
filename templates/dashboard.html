@@ -1,0 +1,751 @@
+{% extends "base.html" %}
+{% block title %}Tea Industry Dashboard{% endblock %}
+
+{% block head_extra %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+<style>
+    /* Enhanced styling for dashboard */
+    .dashboard-header {
+        background: linear-gradient(135deg, #28a745, #20c997);
+        color: white;
+        padding: 2rem;
+        margin-bottom: 2rem;
+        border-radius: 10px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    }
+    
+    .dashboard-header h1 {
+        font-weight: 700;
+        margin-bottom: 0.5rem;
+        font-size: 2.2rem;
+    }
+    
+    .dashboard-header p {
+        opacity: 0.9;
+        font-size: 1.1rem;
+        max-width: 700px;
+    }
+    
+    .kpi-card {
+        transition: all 0.3s ease;
+    }
+    
+    .kpi-icon {
+        float: right;
+        font-size: 2.5rem;
+        opacity: 0.3;
+    }
+    
+    .chart-container {
+        position: relative;
+        height: 300px;
+        width: 100%;
+        margin-bottom: 20px;
+    }
+    
+    #mapContainer {
+        height: 400px;
+        border-radius: 10px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    }
+    
+    .dashboard-card {
+        border-radius: 10px;
+        box-shadow: 0 8px 20px rgba(0,0,0,0.08);
+        margin-bottom: 25px;
+        overflow: hidden;
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+        border: none;
+    }
+    
+    .dashboard-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 12px 25px rgba(0,0,0,0.12);
+    }
+    
+    .dashboard-card .card-header {
+        font-weight: bold;
+        background-color: #f8f9fa;
+        padding: 1rem 1.25rem;
+        border-bottom: 1px solid rgba(0,0,0,0.05);
+    }
+    
+    .dashboard-stat {
+        text-align: center;
+        padding: 1.5rem;
+        background-color: #fff;
+        border-radius: 10px;
+        box-shadow: 0 8px 20px rgba(0,0,0,0.08);
+        border-top: 4px solid #28a745;
+        transition: transform 0.3s ease;
+    }
+    
+    .dashboard-stat:hover {
+        transform: translateY(-5px);
+    }
+    
+    .dashboard-stat h2 {
+        font-size: 2.5rem;
+        font-weight: bold;
+        color: #28a745;
+        margin-bottom: 5px;
+    }
+    
+    .dashboard-stat p {
+        color: #6c757d;
+        margin-bottom: 0;
+        font-weight: 500;
+    }
+    
+    .activity-item {
+        padding: 12px 0;
+        border-bottom: 1px solid #f0f0f0;
+        transition: background-color 0.2s;
+    }
+    
+    .activity-item:hover {
+        background-color: #f8f9fa;
+    }
+    
+    .activity-item:last-child {
+        border-bottom: none;
+    }
+    
+    .activity-item a {
+        color: #28a745;
+        transition: color 0.2s;
+    }
+    
+    .activity-item a:hover {
+        color: #218838;
+        text-decoration: none;
+    }
+    
+    .tea-marker {
+        border-radius: 50%;
+        background-color: rgba(40, 167, 69, 0.7);
+        border: 2px solid #fff;
+        text-align: center;
+        color: white;
+        font-weight: bold;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    .region-label {
+        background: rgba(255, 255, 255, 0.9);
+        border: 1px solid #28a745;
+        border-radius: 4px;
+        padding: 2px 6px;
+        font-weight: bold;
+        font-size: 12px;
+        white-space: nowrap;
+    }
+    
+    .stats-highlight {
+        font-size: 0.9rem;
+        padding: 4px 8px;
+        border-radius: 20px;
+        background: #e9f7ef;
+        color: #28a745;
+        display: inline-block;
+        margin-top: 5px;
+    }
+    
+    .dashboard-footer {
+        background: linear-gradient(135deg, #343a40, #495057);
+        color: white;
+        padding: 2rem 0;
+        margin-top: 3rem;
+        border-radius: 10px 10px 0 0;
+    }
+    
+    .dashboard-footer a {
+        color: #7bf1a8;
+        font-weight: bold;
+    }
+    
+    .dashboard-footer a:hover {
+        color: #fff;
+        text-decoration: none;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Enhanced Header with Gradient Background -->
+<div class="dashboard-header mb-4">
+    <div class="row align-items-center">
+        <div class="col-md-8">
+            <h1><i class="fas fa-chart-line mr-2"></i>Tea Industry Dashboard</h1>
+            <p>Explore comprehensive insights into the global tea business landscape. Discover trends, analyze distributions, and make informed decisions with our interactive data visualization tools.</p>
+        </div>
+        <div class="col-md-4 text-right d-none d-md-block">
+            <i class="fas fa-mug-hot fa-4x text-white" style="opacity:0.5"></i>
+        </div>
+    </div>
+</div>
+
+<!-- Key Metrics with Enhanced Stats Cards -->
+<div class="row mb-4">
+    <div class="col-lg-3 col-md-6 mb-3">
+        <div class="dashboard-stat">
+            <div class="kpi-icon text-success">
+                <i class="fas fa-building"></i>
+            </div>
+            <h2>{{ data.total_businesses }}</h2>
+            <p>Total Businesses</p>
+            <div class="stats-highlight">
+                <i class="fas fa-database"></i> Complete Records
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-3 col-md-6 mb-3">
+        <div class="dashboard-stat">
+            <div class="kpi-icon text-primary">
+                <i class="fas fa-globe"></i>
+            </div>
+            <h2>{{ data.regions|length }}</h2>
+            <p>Regions</p>
+            <div class="stats-highlight">
+                <i class="fas fa-map"></i> Global Coverage
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-3 col-md-6 mb-3">
+        <div class="dashboard-stat">
+            <div class="kpi-icon text-warning">
+                <i class="fas fa-tags"></i>
+            </div>
+            <h2>{{ data.types|length }}</h2>
+            <p>Business Types</p>
+            <div class="stats-highlight">
+                <i class="fas fa-sitemap"></i> Diverse Categories
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-3 col-md-6 mb-3">
+        <div class="dashboard-stat">
+            <div class="kpi-icon text-info">
+                <i class="fas fa-map-marker-alt"></i>
+            </div>
+            <h2>{{ data.locations|length }}</h2>
+            <p>Unique Locations</p>
+            <div class="stats-highlight">
+                <i class="fas fa-thumbtack"></i> Precise Mapping
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <!-- Business Types Distribution Chart -->
+    <div class="col-lg-6 mb-4">
+        <div class="card dashboard-card">
+            <div class="card-header">
+                <i class="fas fa-chart-pie mr-2"></i> Business Types Distribution
+            </div>
+            <div class="card-body">
+                <div class="chart-container">
+                    <canvas id="businessTypesChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Digital Presence Chart -->
+    <div class="col-lg-6 mb-4">
+        <div class="card dashboard-card">
+            <div class="card-header">
+                <i class="fas fa-globe mr-2"></i> Digital Presence
+            </div>
+            <div class="card-body">
+                <div class="chart-container">
+                    <canvas id="digitalPresenceChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <!-- Businesses by Region Chart -->
+    <div class="col-lg-7 mb-4">
+        <div class="card dashboard-card">
+            <div class="card-header">
+                <i class="fas fa-chart-bar mr-2"></i> Businesses by Region
+            </div>
+            <div class="card-body">
+                <div class="chart-container">
+                    <canvas id="regionChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Activities with Enhanced Styling -->
+    <div class="col-lg-5 mb-4">
+        <div class="card dashboard-card">
+            <div class="card-header">
+                <i class="fas fa-history mr-2"></i> Recent Activities
+                <span class="badge badge-success float-right">Latest Updates</span>
+            </div>
+            <div class="card-body">
+                <div class="activity-list" style="height: 300px; overflow-y: auto;">
+                    {% if data.recent_businesses %}
+                        {% for business in data.recent_businesses %}
+                            <div class="activity-item p-2">
+                                <div><strong><a href="{{ url_for('business_detail', business_id=business._id) }}">{{ business.get('Business Name', 'Unnamed Business') }}</a></strong></div>
+                                <div class="text-muted small">
+                                    <i class="fas fa-tag mr-1"></i> {{ business.get('Type', 'N/A') }} 
+                                    <i class="fas fa-map-marker-alt ml-2 mr-1"></i> {{ business.get('Location', 'N/A') }}
+                                </div>
+                            </div>
+                        {% endfor %}
+                    {% else %}
+                        <p class="text-center py-5">
+                            <i class="fas fa-info-circle fa-2x d-block mb-3 text-muted"></i>
+                            No recent activities to display
+                        </p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <!-- Top 10 Locations Chart -->
+    <div class="col-lg-6 mb-4">
+        <div class="card dashboard-card">
+            <div class="card-header">
+                <i class="fas fa-map-marker-alt mr-2"></i> Top 10 Locations
+            </div>
+            <div class="card-body">
+                <div class="chart-container">
+                    <canvas id="locationChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Geographical Distribution Map with Enhanced Styling -->
+    <div class="col-lg-6 mb-4">
+        <div class="card dashboard-card">
+            <div class="card-header">
+                <i class="fas fa-map mr-2"></i> Geographical Distribution
+                <span class="badge badge-info float-right">Interactive</span>
+            </div>
+            <div class="card-body p-0">
+                <div id="mapContainer"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Actions Section -->
+<div class="row mb-5">
+    <div class="col-12">
+        <div class="card dashboard-card">
+            <div class="card-header">
+                <i class="fas fa-bolt mr-2"></i> Quick Actions
+            </div>
+            <div class="card-body">
+                <div class="row text-center">
+                    <div class="col-md-3 col-6 mb-3">
+                        <a href="{{ url_for('business_navigator') }}" class="btn btn-outline-success btn-lg btn-block">
+                            <i class="fas fa-compass mb-2 d-block" style="font-size: 24px;"></i>
+                            Browse Businesses
+                        </a>
+                    </div>
+                    <div class="col-md-3 col-6 mb-3">
+                        <a href="{{ url_for('add_business') }}" class="btn btn-outline-primary btn-lg btn-block">
+                            <i class="fas fa-plus-circle mb-2 d-block" style="font-size: 24px;"></i>
+                            Add Business
+                        </a>
+                    </div>
+                    <div class="col-md-3 col-6 mb-3">
+                        <a href="{{ url_for('search') }}" class="btn btn-outline-info btn-lg btn-block">
+                            <i class="fas fa-search mb-2 d-block" style="font-size: 24px;"></i>
+                            Advanced Search
+                        </a>
+                    </div>
+                    <div class="col-md-3 col-6 mb-3">
+                        <a href="{{ url_for('find_duplicates') }}" class="btn btn-outline-warning btn-lg btn-block">
+                            <i class="fas fa-clone mb-2 d-block" style="font-size: 24px;"></i>
+                            Find Duplicates
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block footer %}
+<div class="dashboard-footer">
+    <div class="container text-center">
+        <div class="row">
+            <div class="col-md-8 mx-auto">
+                <h4><i class="fas fa-leaf mr-2"></i>Powered by <a href="https://chaiport.in" target="_blank">chaiport.in</a></h4>
+                <p class="mb-0">Tea Knowledge Graph | Visualize, Analyze & Discover Tea Businesses Around the World</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<!-- Leaflet.js for maps -->
+<script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Business Types Chart with enhanced styling
+    var typeCtx = document.getElementById('businessTypesChart').getContext('2d');
+    var typeData = {
+        labels: [{% for item in data.types %}{% if item._id %}'{{ item._id }}'{% else %}'Unknown'{% endif %}{% if not loop.last %}, {% endif %}{% endfor %}],
+        datasets: [{
+            label: 'Number of Businesses',
+            data: [{% for item in data.types %}{{ item.count }}{% if not loop.last %}, {% endif %}{% endfor %}],
+            backgroundColor: [
+                'rgba(54, 162, 235, 0.8)', 'rgba(255, 99, 132, 0.8)', 
+                'rgba(255, 206, 86, 0.8)', 'rgba(75, 192, 192, 0.8)', 
+                'rgba(153, 102, 255, 0.8)', 'rgba(255, 159, 64, 0.8)',
+                'rgba(40, 167, 69, 0.8)', 'rgba(220, 53, 69, 0.8)', 
+                'rgba(108, 117, 125, 0.8)', 'rgba(23, 162, 184, 0.8)'
+            ],
+            borderColor: '#ffffff',
+            borderWidth: 2
+        }]
+    };
+    new Chart(typeCtx, {
+        type: 'pie',
+        data: typeData,
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'right',
+                    labels: {
+                        boxWidth: 15,
+                        font: {
+                            size: 11,
+                            weight: 'bold'
+                        },
+                        usePointStyle: true
+                    }
+                },
+                title: {
+                    display: true,
+                    text: 'Distribution of Business Types',
+                    font: {
+                        size: 16,
+                        weight: 'bold'
+                    }
+                },
+                tooltip: {
+                    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                    padding: 12,
+                    usePointStyle: true,
+                    callbacks: {
+                        label: function(context) {
+                            let label = context.label || '';
+                            let value = context.parsed || 0;
+                            let total = context.dataset.data.reduce((a, b) => a + b, 0);
+                            let percentage = Math.round((value / total) * 100);
+                            return `${label}: ${value} (${percentage}%)`;
+                        }
+                    }
+                }
+            },
+            animation: {
+                animateScale: true,
+                animateRotate: true
+            }
+        }
+    });
+
+    // Digital Presence (Website Stats) Chart with enhanced styling
+    var digitalPresenceCtx = document.getElementById('digitalPresenceChart').getContext('2d');
+    var digitalPresenceData = {
+        labels: ['Has Website', 'No Website'],
+        datasets: [{
+            data: [{{ data.website_stats.has_website }}, {{ data.website_stats.no_website }}],
+            backgroundColor: ['rgba(40, 167, 69, 0.8)', 'rgba(220, 53, 69, 0.8)'],
+            borderColor: ['rgb(40, 167, 69)', 'rgb(220, 53, 69)'],
+            borderWidth: 2
+        }]
+    };
+    new Chart(digitalPresenceCtx, {
+        type: 'doughnut',
+        data: digitalPresenceData,
+        options: {
+            cutout: '65%',
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: {
+                        font: {
+                            size: 12,
+                            weight: 'bold'
+                        },
+                        usePointStyle: true,
+                        padding: 20
+                    }
+                },
+                title: {
+                    display: true,
+                    text: 'Business Online Presence',
+                    font: {
+                        size: 16,
+                        weight: 'bold'
+                    }
+                },
+                tooltip: {
+                    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                    padding: 12,
+                    callbacks: {
+                        label: function(context) {
+                            let label = context.label || '';
+                            let value = context.parsed || 0;
+                            let total = {{ data.website_stats.has_website }} + {{ data.website_stats.no_website }};
+                            let percentage = Math.round((value / total) * 100);
+                            return `${label}: ${value} (${percentage}%)`;
+                        }
+                    }
+                }
+            },
+            animation: {
+                animateScale: true,
+                animateRotate: true
+            }
+        }
+    });
+
+    // Region Chart with enhanced styling
+    var regionCtx = document.getElementById('regionChart').getContext('2d');
+    var regionData = {
+        labels: [{% for item in data.regions %}{% if item._id %}'{{ item._id }}'{% else %}'Unknown'{% endif %}{% if not loop.last %}, {% endif %}{% endfor %}],
+        datasets: [{
+            label: 'Number of Businesses',
+            data: [{% for item in data.regions %}{{ item.count }}{% if not loop.last %}, {% endif %}{% endfor %}],
+            backgroundColor: 'rgba(75, 192, 192, 0.8)',
+            borderColor: 'rgb(75, 192, 192)',
+            borderWidth: 1,
+            borderRadius: 4,
+            barThickness: 16,
+        }]
+    };
+    new Chart(regionCtx, {
+        type: 'bar',
+        data: regionData,
+        options: {
+            indexAxis: 'y',
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: false,
+                },
+                title: {
+                    display: true,
+                    text: 'Businesses by Region',
+                    font: {
+                        size: 16,
+                        weight: 'bold'
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    beginAtZero: true,
+                    grid: {
+                        color: 'rgba(0, 0, 0, 0.05)'
+                    },
+                    title: {
+                        display: true,
+                        text: 'Number of Businesses',
+                        font: {
+                            weight: 'bold'
+                        }
+                    }
+                },
+                y: {
+                    grid: {
+                        display: false
+                    },
+                    title: {
+                        display: true,
+                        text: 'Region',
+                        font: {
+                            weight: 'bold'
+                        }
+                    }
+                }
+            }
+        }
+    });
+
+    // Location Chart with enhanced styling
+    var locationCtx = document.getElementById('locationChart').getContext('2d');
+    var locationData = {
+        labels: [{% for item in data.locations %}{% if item._id %}'{{ item._id }}'{% else %}'Unknown'{% endif %}{% if not loop.last %}, {% endif %}{% endfor %}],
+        datasets: [{
+            label: 'Number of Businesses',
+            data: [{% for item in data.locations %}{{ item.count }}{% if not loop.last %}, {% endif %}{% endfor %}],
+            backgroundColor: 'rgba(255, 159, 64, 0.8)',
+            borderColor: 'rgb(255, 159, 64)',
+            borderWidth: 1,
+            borderRadius: 4,
+            barThickness: 20,
+        }]
+    };
+    new Chart(locationCtx, {
+        type: 'bar',
+        data: locationData,
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: false,
+                },
+                title: {
+                    display: true,
+                    text: 'Top 10 Locations by Number of Businesses',
+                    font: {
+                        size: 16,
+                        weight: 'bold'
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    grid: {
+                        color: 'rgba(0, 0, 0, 0.05)'
+                    },
+                    title: {
+                        display: true,
+                        text: 'Number of Businesses',
+                        font: {
+                            weight: 'bold'
+                        }
+                    }
+                },
+                x: {
+                    grid: {
+                        display: false
+                    },
+                    title: {
+                        display: true,
+                        text: 'Location',
+                        font: {
+                            weight: 'bold'
+                        }
+                    }
+                }
+            }
+        }
+    });
+
+    // Enhanced Interactive Map
+    var map = L.map('mapContainer', {
+        zoomControl: false,
+        attributionControl: false
+    }).setView([20.5937, 78.9629], 4);
+    
+    // Add zoom control to bottom right
+    L.control.zoom({
+        position: 'bottomright'
+    }).addTo(map);
+    
+    // Add attribution control to bottom left
+    L.control.attribution({
+        position: 'bottomleft',
+        prefix: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+    }).addTo(map);
+    
+    // Add custom styled base map
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: false // We already added attribution separately
+    }).addTo(map);
+
+    // Tea growing regions with enhanced markers
+    var teaRegions = [
+        {name: "Darjeeling", lat: 27.0410, lng: 88.2663, count: 15},
+        {name: "Assam", lat: 26.7499, lng: 93.9173, count: 25},
+        {name: "Nilgiri", lat: 11.4916, lng: 76.7399, count: 8},
+        {name: "Kangra", lat: 32.0998, lng: 76.2691, count: 5},
+        {name: "Munnar", lat: 10.0889, lng: 77.0595, count: 12},
+        {name: "Dooars", lat: 26.6855, lng: 89.1120, count: 7}
+    ];
+    
+    // Add custom styled markers
+    teaRegions.forEach(function(region) {
+        // Create size based on number of businesses
+        var size = Math.max(30, Math.min(50, region.count * 1.5));
+        
+        // Create custom div icon
+        var icon = L.divIcon({
+            className: 'tea-marker',
+            html: '<i class="fas fa-leaf"></i>',
+            iconSize: [size, size]
+        });
+        
+        // Add marker with custom icon
+        var marker = L.marker([region.lat, region.lng], {icon: icon}).addTo(map);
+        
+        // Create popup with region info
+        var popupContent = `
+            <div style="text-align:center; padding:5px;">
+                <h5 style="margin-bottom:8px;">${region.name}</h5>
+                <div style="font-size:24px; color:#28a745;"><strong>${region.count}</strong></div>
+                <div style="color:#6c757d;">Tea Businesses</div>
+                <a href="#" class="btn btn-sm btn-outline-success mt-2" 
+                   onclick="window.location.href='/navigator?region=${region.name}'">
+                   View Businesses
+                </a>
+            </div>
+        `;
+        marker.bindPopup(popupContent);
+        
+        // Add region label
+        var labelIcon = L.divIcon({
+            className: 'region-label',
+            html: region.name,
+            iconSize: [80, 20],
+            iconAnchor: [40, 0]
+        });
+        
+        L.marker([region.lat, region.lng - 0.3], {icon: labelIcon, interactive: false}).addTo(map);
+    });
+
+    // Fit bounds to include all markers
+    var bounds = teaRegions.map(function(region) {
+        return [region.lat, region.lng];
+    });
+    if (bounds.length > 0) {
+        map.fitBounds(bounds, {padding: [30, 30]});
+    }
+    
+    // Add a highlight effect when hovering over dashboard cards
+    document.querySelectorAll('.dashboard-card').forEach(card => {
+        card.addEventListener('mouseenter', function() {
+            this.style.transform = 'translateY(-5px)';
+        });
+        card.addEventListener('mouseleave', function() {
+            this.style.transform = 'translateY(0)';
+        });
+    });
+});
+</script>
+{% endblock %}

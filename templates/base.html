@@ -1,0 +1,209 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.1/css/all.min.css">
+    <title>{% block title %}Tea Knowledge Graph{% endblock %}</title>
+    <style>
+        body {
+            padding-top: 56px;
+            display: flex;
+            min-height: 100vh;
+        }
+        
+        /* Sidebar styling */
+        #sidebar {
+            min-width: 250px;
+            max-width: 250px;
+            background: #343a40;
+            color: #fff;
+            transition: all 0.3s;
+            height: calc(100vh - 56px);
+            position: fixed;
+            top: 56px;
+            left: 0;
+            overflow-y: auto;
+            z-index: 999;
+        }
+        
+        #sidebar .sidebar-header {
+            padding: 15px;
+            background: #272c30;
+        }
+        
+        #sidebar ul.components {
+            padding: 0;
+        }
+        
+        #sidebar ul li a {
+            padding: 15px;
+            display: block;
+            color: rgba(255,255,255,0.8);
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+        
+        #sidebar ul li a:hover {
+            color: #fff;
+            background: #495057;
+            text-decoration: none;
+        }
+        
+        #sidebar ul li a.active {
+            background-color: #007bff;
+            color: white;
+        }
+        
+        #sidebar ul li a i {
+            margin-right: 10px;
+        }
+        
+        #content {
+            width: 100%;
+            margin-left: 250px;
+            transition: all 0.3s;
+            padding: 20px;
+        }
+        
+        /* Small screens */
+        @media (max-width: 768px) {
+            #sidebar {
+                margin-left: -250px;
+            }
+            #sidebar.active {
+                margin-left: 0;
+            }
+            #content {
+                margin-left: 0;
+            }
+            #content.active {
+                margin-left: 250px;
+            }
+            #sidebarCollapse span {
+                display: none;
+            }
+        }
+        
+        .table-responsive { margin-top: 20px; }
+        .flash-messages .alert { margin-bottom: 10px; }
+        .dropdown-menu {
+            right: 0;
+            left: auto;
+        }
+    </style>
+    {% block head_extra %}{% endblock %}
+</head>
+<body>
+    <!-- Top Navigation Bar (only search and logout) -->
+    <nav class="navbar navbar-expand-md navbar-dark bg-dark fixed-top">
+        <button type="button" id="sidebarCollapse" class="btn btn-dark d-md-none">
+            <i class="fas fa-bars"></i>
+        </button>
+        <a class="navbar-brand" href="{{ url_for('index') }}">
+            <i class="fas fa-leaf mr-2"></i>Chaiport Database
+        </a>
+        
+        <div class="ml-auto d-flex align-items-center">
+            <form class="form-inline my-2 my-lg-0 mr-3" action="{{ url_for('business_navigator') }}" method="GET">
+                <input class="form-control mr-sm-2" type="search" name="query" placeholder="Quick search..." aria-label="Search">
+                <button class="btn btn-outline-success my-2 my-sm-0" type="submit">
+                    <i class="fas fa-search"></i>
+                </button>
+            </form>
+            
+            {% if session.logged_in %}
+            <div class="dropdown">
+                <button class="btn btn-outline-light dropdown-toggle" type="button" id="userDropdown" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                    <i class="fas fa-user-circle mr-1"></i> {{ session.username }}
+                </button>
+                <div class="dropdown-menu dropdown-menu-right" aria-labelledby="userDropdown">
+                    <a class="dropdown-item" href="{{ url_for('logout') }}">
+                        <i class="fas fa-sign-out-alt mr-2"></i> Logout
+                    </a>
+                </div>
+            </div>
+            {% else %}
+            <a href="{{ url_for('login') }}" class="btn btn-outline-light">
+                <i class="fas fa-sign-in-alt mr-1"></i> Login
+            </a>
+            {% endif %}
+        </div>
+    </nav>
+    
+    <!-- Sidebar Navigation -->
+    <div class="wrapper d-flex">
+        <nav id="sidebar">
+            <ul class="list-unstyled components">
+                <li><a href="{{ url_for('index') }}"><i class="fas fa-chart-line"></i> Dashboard</a></li>
+                <li><a href="{{ url_for('business_navigator') }}"><i class="fas fa-compass"></i> Business Navigator</a></li>
+                <li><a href="{{ url_for('business_list') }}"><i class="fas fa-list"></i> All Businesses</a></li>
+                <li><a href="{{ url_for('add_business') }}"><i class="fas fa-plus-circle"></i> Add Business</a></li>
+                <li><a href="{{ url_for('search') }}"><i class="fas fa-search"></i> Advanced Search</a></li>
+                <li><a href="{{ url_for('find_duplicates') }}"><i class="fas fa-clone"></i> Find Duplicates</a></li>
+                <li><a href="{{ url_for('enrich_data_page') }}"><i class="fas fa-magic"></i> Enrich Data</a></li>
+                <li><a href="{{ url_for('admin') }}"><i class="fas fa-database"></i> Data Manager</a></li>
+            </ul>
+            
+            <!-- Footer added to sidebar -->
+            <footer class="footer mt-auto py-3 bg-dark text-grey" style="position: absolute; bottom: 0; width: 100%; margin-top: 10px; z-index: 1; border-top: 1px solid rgba(255,255,255,0.1);">
+                <div class="container text-center px-2">
+                    <span class="text-muted small">Powered by <a href="https://chaiport.in" target="_blank" class="text-info">Chaiport.in</a> &copy; 2025</span> 
+                    <span class="d-block text-muted small mt-1">
+                        version 1.0.0
+                    </span>
+                </div>
+            </footer>
+        </nav>
+        
+        <!-- Page Content -->
+        <div id="content">
+            <div class="container-fluid">
+                <div class="flash-messages">
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        {% for category, message in messages %}
+                        <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                            {{ message }}
+                            <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                            <span aria-hidden="true">×</span>
+                            </button>
+                        </div>
+                        {% endfor %}
+                    {% endif %}
+                {% endwith %}
+                </div>
+                {% block content %}{% endblock %}
+            </div>
+        </div>
+    </div>
+
+       
+
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.4/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+    $(document).ready(function() {
+        // Sidebar toggle for mobile
+        $('#sidebarCollapse').on('click', function() {
+            $('#sidebar').toggleClass('active');
+            $('#content').toggleClass('active');
+        });
+        
+        // Highlight active sidebar item based on current URL
+        var currentUrl = window.location.pathname;
+        $('#sidebar ul li a').each(function() {
+            var linkUrl = $(this).attr('href');
+            if (linkUrl !== '/' && currentUrl.indexOf(linkUrl) !== -1) {
+                $(this).addClass('active');
+            } else if (linkUrl === '/' && currentUrl === '/') {
+                $(this).addClass('active');
+            }
+        });
+    });
+    </script>
+    {% block scripts %}{% endblock %}
+</body>
+</html>

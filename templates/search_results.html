@@ -1,0 +1,28 @@
+
+    {% extends "base.html" %}
+    {% block title %}Search Results for "{{ query }}"{% endblock %}
+    {% block content %}
+        <h1>Search Results for "{{ query }}" <small class="text-muted">({{ search_type }} search)</small></h1>
+        {% if results %}
+            <div class="table-responsive">
+                <table class="table table-striped">
+                    <thead><tr><th>Name</th><th>Type</th><th>Location</th><th>Description</th>{% if results[0].score %}<th>Score</th>{% endif %}</tr></thead>
+                    <tbody>
+                    {% for business in results %}
+                        <tr>
+                            <td><a href="{{ url_for('business_detail', business_id=business['_id']|string) }}">{{ business['Business Name'] }}</a></td>
+                            <td>{{ business['Type'] }}</td>
+                            <td>{{ business['Location'] }}</td>
+                            <td>{{ business['Description'][:100] }}...</td>
+                            {% if business.score %}<td>{{ "%.4f"|format(business.score) }}</td>{% endif %}
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <p>No results found matching your query.</p>
+        {% endif %}
+        <a href="{{ url_for('search') }}" class="btn btn-secondary mt-3">New Search</a>
+    {% endblock %}
+    

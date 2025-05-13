@@ -1,0 +1,538 @@
+{% extends "base.html" %}
+{% block title %}Compare Duplicates{% endblock %}
+
+{% block head_extra %}
+<style>
+    .comparison-table {
+        border-radius: 8px;
+        overflow: hidden;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+        margin-bottom: 30px;
+    }
+    
+    .comparison-table th {
+        background: #495057;
+        color: white;
+        padding: 15px;
+        text-align: center;
+    }
+    
+    .comparison-table th:first-child {
+        background: #6c757d;
+        text-align: left;
+    }
+    
+    .comparison-table td {
+        padding: 15px;
+        vertical-align: middle;
+    }
+    
+    .comparison-table tr:nth-child(even) {
+        background-color: #f8f9fa;
+    }
+    
+    .comparison-table tr:hover {
+        background-color: #e9ecef;
+    }
+    
+    .field-label {
+        font-weight: bold;
+        color: #495057;
+    }
+    
+    .field-value {
+        padding: 8px 12px;
+        border-radius: 4px;
+        background-color: #fff;
+        border: 1px solid #dee2e6;
+    }
+    
+    .field-empty {
+        color: #6c757d;
+        font-style: italic;
+        border-color: #f8d7da;
+        background-color: #fff8f8;
+    }
+    
+    .match-badge {
+        display: inline-block;
+        padding: 2px 8px;
+        border-radius: 12px;
+        font-size: 0.8rem;
+        margin-top: 5px;
+        background-color: #d4edda;
+        color: #155724;
+    }
+    
+    .select-btn {
+        padding: 8px 16px;
+        border: none;
+        border-radius: 20px;
+        cursor: pointer;
+        transition: all 0.2s;
+        font-weight: 600;
+    }
+    
+    .btn-select {
+        background-color: #f8f9fa;
+        color: #6c757d;
+        border: 2px solid #dee2e6;
+    }
+    
+    .btn-select:hover {
+        background-color: #e9ecef;
+    }
+    
+    .btn-selected {
+        background-color: #28a745;
+        color: white;
+    }
+    
+    .btn-selected:hover {
+        background-color: #218838;
+    }
+    
+    .edited-field {
+        border-left: 3px solid #17a2b8;
+        background-color: #eaf6f9;
+        box-shadow: 0 0 5px rgba(23, 162, 184, 0.2);
+    }
+    
+    .description-field {
+        max-height: 150px;
+        overflow-y: auto;
+    }
+    
+    .merge-actions {
+        border-top: 1px solid #dee2e6;
+        padding-top: 20px;
+        margin-top: 20px;
+    }
+    
+    .merge-notice {
+        background-color: #fdf5e8;
+        border-left: 4px solid #fd7e14;
+        padding: 15px;
+        margin: 20px 0;
+        border-radius: 4px;
+    }
+    
+    .merge-btn {
+        padding: 10px 25px;
+        font-size: 1.1rem;
+        font-weight: bold;
+    }
+
+    /* New styles for merged value rows */
+    .merged-row {
+        background-color: #f0f7f0;
+        border-left: 3px solid #28a745;
+    }
+    
+    .merged-row td {
+        padding: 15px 20px;
+    }
+    
+    .merged-row-label {
+        font-weight: 600;
+        color: #28a745;
+        font-size: 0.85rem;
+        margin-bottom: 5px;
+    }
+    
+    /* Make sure the table row hover doesn't affect merged rows */
+    .comparison-table tr.merged-row:hover {
+        background-color: #f0f7f0;
+    }
+    
+    /* Adjust column widths without the merged value column */
+    .comparison-table th.field-column {
+        width: 20%;
+    }
+    
+    .comparison-table th.value-column {
+        width: 40%;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row mb-4">
+        <div class="col-12">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb bg-light p-3 rounded">
+                    <li class="breadcrumb-item"><a href="{{ url_for('index') }}">Home</a></li>
+                    <li class="breadcrumb-item"><a href="{{ url_for('find_duplicates') }}">Duplicates</a></li>
+                    <li class="breadcrumb-item active">Compare & Merge</li>
+                </ol>
+            </nav>
+            
+            <h1 class="mb-3">
+                <i class="fas fa-clone mr-2"></i> Compare & Merge Duplicates
+            </h1>
+            
+            <div class="alert alert-info">
+                <i class="fas fa-info-circle mr-2"></i> Compare the details from both businesses and select which information to keep for each field. Click a <strong>Select</strong> button to choose the value you want to keep.
+            </div>
+        </div>
+    </div>
+
+    <form method="POST" action="{{ url_for('merge_duplicates') }}" id="mergeForm">
+        <input type="hidden" name="business_id1" value="{{ business1._id }}">
+        <input type="hidden" name="business_id2" value="{{ business2._id }}">
+        
+        <!-- The hidden fields to store the selected values -->
+        <input type="hidden" name="select_merged_name" id="select_merged_name" value="1">
+        <input type="hidden" name="select_merged_type" id="select_merged_type" value="1">
+        <input type="hidden" name="select_merged_location" id="select_merged_location" value="1">
+        <input type="hidden" name="select_merged_region" id="select_merged_region" value="1">
+        <input type="hidden" name="select_merged_website" id="select_merged_website" value="1">
+        <input type="hidden" name="select_merged_description" id="select_merged_description" value="1">
+        <input type="hidden" name="select_merged_contact" id="select_merged_contact" value="1">
+        
+        <table class="table comparison-table">
+            <thead>
+                <tr>
+                    <th class="field-column">Field</th>
+                    <th class="value-column">Business 1 ({{ business1._id }})</th>
+                    <th class="value-column">Business 2 ({{ business2._id }})</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- Business Name -->
+                <tr>
+                    <td class="field-label">Business Name</td>
+                    <td>
+                        <div class="field-value {% if not business1.get('Business Name') %}field-empty{% endif %}">
+                            {{ business1.get('Business Name', 'No data available') }}
+                        </div>
+                        <button type="button" class="btn btn-selected select-btn mt-2" id="name_btn1" 
+                                onclick="selectField('merged_name', 1, 'name_btn')">
+                            <i class="fas fa-check mr-1"></i> Selected
+                        </button>
+                    </td>
+                    <td>
+                        <div class="field-value {% if not business2.get('Business Name') %}field-empty{% endif %}">
+                            {{ business2.get('Business Name', 'No data available') }}
+                        </div>
+                        <button type="button" class="btn btn-select select-btn mt-2" id="name_btn2" 
+                                onclick="selectField('merged_name', 2, 'name_btn')">
+                            Select
+                        </button>
+                    </td>
+                </tr>
+                <!-- Merged value row for Business Name -->
+                <tr class="merged-row">
+                    <td colspan="3">
+                        <div class="merged-row-label"><i class="fas fa-arrow-right mr-1"></i> Merged Business Name</div>
+                        <input type="text" class="form-control" id="merged_name" name="merged_name" 
+                               value="{{ business1.get('Business Name', '') }}">
+                    </td>
+                </tr>
+                
+                <!-- Type -->
+                <tr>
+                    <td class="field-label">Type</td>
+                    <td>
+                        <div class="field-value {% if not business1.get('Type') %}field-empty{% endif %}">
+                            {{ business1.get('Type', 'No data available') }}
+                        </div>
+                        <button type="button" class="btn btn-selected select-btn mt-2" id="type_btn1" 
+                                onclick="selectField('merged_type', 1, 'type_btn')">
+                            <i class="fas fa-check mr-1"></i> Selected
+                        </button>
+                        {% if business1.get('Type') == business2.get('Type') and business1.get('Type') %}
+                            <span class="match-badge"><i class="fas fa-equals mr-1"></i> Match</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <div class="field-value {% if not business2.get('Type') %}field-empty{% endif %}">
+                            {{ business2.get('Type', 'No data available') }}
+                        </div>
+                        <button type="button" class="btn btn-select select-btn mt-2" id="type_btn2" 
+                                onclick="selectField('merged_type', 2, 'type_btn')">
+                            Select
+                        </button>
+                    </td>
+                </tr>
+                <!-- Merged value row for Type -->
+                <tr class="merged-row">
+                    <td colspan="3">
+                        <div class="merged-row-label"><i class="fas fa-arrow-right mr-1"></i> Merged Type</div>
+                        <input type="text" class="form-control" id="merged_type" name="merged_type" 
+                               value="{{ business1.get('Type', '') }}">
+                    </td>
+                </tr>
+                
+                <!-- Location -->
+                <tr>
+                    <td class="field-label">Location</td>
+                    <td>
+                        <div class="field-value {% if not business1.get('Location') %}field-empty{% endif %}">
+                            {{ business1.get('Location', 'No data available') }}
+                        </div>
+                        <button type="button" class="btn btn-selected select-btn mt-2" id="location_btn1" 
+                                onclick="selectField('merged_location', 1, 'location_btn')">
+                            <i class="fas fa-check mr-1"></i> Selected
+                        </button>
+                        {% if business1.get('Location') == business2.get('Location') and business1.get('Location') %}
+                            <span class="match-badge"><i class="fas fa-equals mr-1"></i> Match</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <div class="field-value {% if not business2.get('Location') %}field-empty{% endif %}">
+                            {{ business2.get('Location', 'No data available') }}
+                        </div>
+                        <button type="button" class="btn btn-select select-btn mt-2" id="location_btn2" 
+                                onclick="selectField('merged_location', 2, 'location_btn')">
+                            Select
+                        </button>
+                    </td>
+                </tr>
+                <!-- Merged value row for Location -->
+                <tr class="merged-row">
+                    <td colspan="3">
+                        <div class="merged-row-label"><i class="fas fa-arrow-right mr-1"></i> Merged Location</div>
+                        <input type="text" class="form-control" id="merged_location" name="merged_location" 
+                               value="{{ business1.get('Location', '') }}">
+                    </td>
+                </tr>
+                
+                <!-- Region -->
+                <tr>
+                    <td class="field-label">Region</td>
+                    <td>
+                        <div class="field-value {% if not business1.get('Region') %}field-empty{% endif %}">
+                            {{ business1.get('Region', 'No data available') }}
+                        </div>
+                        <button type="button" class="btn btn-selected select-btn mt-2" id="region_btn1" 
+                                onclick="selectField('merged_region', 1, 'region_btn')">
+                            <i class="fas fa-check mr-1"></i> Selected
+                        </button>
+                        {% if business1.get('Region') == business2.get('Region') and business1.get('Region') %}
+                            <span class="match-badge"><i class="fas fa-equals mr-1"></i> Match</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <div class="field-value {% if not business2.get('Region') %}field-empty{% endif %}">
+                            {{ business2.get('Region', 'No data available') }}
+                        </div>
+                        <button type="button" class="btn btn-select select-btn mt-2" id="region_btn2" 
+                                onclick="selectField('merged_region', 2, 'region_btn')">
+                            Select
+                        </button>
+                    </td>
+                </tr>
+                <!-- Merged value row for Region -->
+                <tr class="merged-row">
+                    <td colspan="3">
+                        <div class="merged-row-label"><i class="fas fa-arrow-right mr-1"></i> Merged Region</div>
+                        <input type="text" class="form-control" id="merged_region" name="merged_region" 
+                               value="{{ business1.get('Region', '') }}">
+                    </td>
+                </tr>
+                
+                <!-- Website -->
+                <tr>
+                    <td class="field-label">Website</td>
+                    <td>
+                        <div class="field-value {% if not business1.get('Website') %}field-empty{% endif %}">
+                            {% if business1.get('Website') %}
+                                <a href="{{ business1.get('Website') }}" target="_blank">{{ business1.get('Website') }}</a>
+                            {% else %}
+                                No data available
+                            {% endif %}
+                        </div>
+                        <button type="button" class="btn btn-selected select-btn mt-2" id="website_btn1" 
+                                onclick="selectField('merged_website', 1, 'website_btn')">
+                            <i class="fas fa-check mr-1"></i> Selected
+                        </button>
+                        {% if business1.get('Website') == business2.get('Website') and business1.get('Website') %}
+                            <span class="match-badge"><i class="fas fa-equals mr-1"></i> Match</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <div class="field-value {% if not business2.get('Website') %}field-empty{% endif %}">
+                            {% if business2.get('Website') %}
+                                <a href="{{ business2.get('Website') }}" target="_blank">{{ business2.get('Website') }}</a>
+                            {% else %}
+                                No data available
+                            {% endif %}
+                        </div>
+                        <button type="button" class="btn btn-select select-btn mt-2" id="website_btn2" 
+                                onclick="selectField('merged_website', 2, 'website_btn')">
+                            Select
+                        </button>
+                    </td>
+                </tr>
+                <!-- Merged value row for Website -->
+                <tr class="merged-row">
+                    <td colspan="3">
+                        <div class="merged-row-label"><i class="fas fa-arrow-right mr-1"></i> Merged Website</div>
+                        <input type="text" class="form-control" id="merged_website" name="merged_website" 
+                               value="{{ business1.get('Website', '') }}">
+                    </td>
+                </tr>
+                
+                <!-- Description -->
+                <tr>
+                    <td class="field-label">Description</td>
+                    <td>
+                        <div class="field-value description-field {% if not business1.get('Description') %}field-empty{% endif %}">
+                            {{ business1.get('Description', 'No data available') }}
+                        </div>
+                        <button type="button" class="btn btn-selected select-btn mt-2" id="description_btn1" 
+                                onclick="selectField('merged_description', 1, 'description_btn')">
+                            <i class="fas fa-check mr-1"></i> Selected
+                        </button>
+                    </td>
+                    <td>
+                        <div class="field-value description-field {% if not business2.get('Description') %}field-empty{% endif %}">
+                            {{ business2.get('Description', 'No data available') }}
+                        </div>
+                        <button type="button" class="btn btn-select select-btn mt-2" id="description_btn2" 
+                                onclick="selectField('merged_description', 2, 'description_btn')">
+                            Select
+                        </button>
+                    </td>
+                </tr>
+                <!-- Merged value row for Description -->
+                <tr class="merged-row">
+                    <td colspan="3">
+                        <div class="merged-row-label"><i class="fas fa-arrow-right mr-1"></i> Merged Description</div>
+                        <textarea class="form-control" id="merged_description" name="merged_description" 
+                                 rows="4">{{ business1.get('Description', '') }}</textarea>
+                    </td>
+                </tr>
+                
+                <!-- Contact Info -->
+                <tr>
+                    <td class="field-label">Contact Info</td>
+                    <td>
+                        <div class="field-value {% if not business1.get('Contact Info') %}field-empty{% endif %}">
+                            {{ business1.get('Contact Info', 'No data available') }}
+                        </div>
+                        <button type="button" class="btn btn-selected select-btn mt-2" id="contact_btn1" 
+                                onclick="selectField('merged_contact', 1, 'contact_btn')">
+                            <i class="fas fa-check mr-1"></i> Selected
+                        </button>
+                        {% if business1.get('Contact Info') == business2.get('Contact Info') and business1.get('Contact Info') %}
+                            <span class="match-badge"><i class="fas fa-equals mr-1"></i> Match</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <div class="field-value {% if not business2.get('Contact Info') %}field-empty{% endif %}">
+                            {{ business2.get('Contact Info', 'No data available') }}
+                        </div>
+                        <button type="button" class="btn btn-select select-btn mt-2" id="contact_btn2" 
+                                onclick="selectField('merged_contact', 2, 'contact_btn')">
+                            Select
+                        </button>
+                    </td>
+                </tr>
+                <!-- Merged value row for Contact Info -->
+                <tr class="merged-row">
+                    <td colspan="3">
+                        <div class="merged-row-label"><i class="fas fa-arrow-right mr-1"></i> Merged Contact Info</div>
+                        <input type="text" class="form-control" id="merged_contact" name="merged_contact" 
+                               value="{{ business1.get('Contact Info', '') }}">
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+                
+        <div class="merge-notice">
+            <h5><i class="fas fa-exclamation-triangle mr-2"></i> Important Information</h5>
+            <p>After merging, <strong>Business 1</strong> (ID: {{ business1._id }}) will be updated with the merged data above. <strong>Business 2</strong> (ID: {{ business2._id }}) will be deleted from the database.</p>
+            <p class="mb-0">You can edit any field in the "Merged Value" column before submitting.</p>
+        </div>
+        
+        <div class="merge-actions text-center">
+            <button type="submit" class="btn btn-success merge-btn">
+                <i class="fas fa-check-circle mr-2"></i> Merge Records
+            </button>
+            <a href="{{ url_for('find_duplicates') }}" class="btn btn-outline-secondary ml-3">
+                <i class="fas fa-times mr-2"></i> Cancel
+            </a>
+        </div>
+    </form>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Store business data
+    const business1 = {
+        'merged_name': {{ business1.get('Business Name', '')|tojson }},
+        'merged_type': {{ business1.get('Type', '')|tojson }},
+        'merged_location': {{ business1.get('Location', '')|tojson }},
+        'merged_region': {{ business1.get('Region', '')|tojson }},
+        'merged_website': {{ business1.get('Website', '')|tojson }},
+        'merged_description': {{ business1.get('Description', '')|tojson }},
+        'merged_contact': {{ business1.get('Contact Info', '')|tojson }}
+    };
+    
+    const business2 = {
+        'merged_name': {{ business2.get('Business Name', '')|tojson }},
+        'merged_type': {{ business2.get('Type', '')|tojson }},
+        'merged_location': {{ business2.get('Location', '')|tojson }},
+        'merged_region': {{ business2.get('Region', '')|tojson }},
+        'merged_website': {{ business2.get('Website', '')|tojson }},
+        'merged_description': {{ business2.get('Description', '')|tojson }},
+        'merged_contact': {{ business2.get('Contact Info', '')|tojson }}
+    };
+    
+    // Listen for changes on any of the merged fields
+    document.querySelectorAll('input[id^="merged_"], textarea[id^="merged_"]').forEach(field => {
+        field.addEventListener('input', function() {
+            this.classList.add('edited-field');
+        });
+    });
+});
+
+// Function to select a field value from either business
+function selectField(fieldName, businessNum, buttonPrefix) {
+    // Update hidden form field value
+    document.getElementById('select_' + fieldName).value = businessNum;
+    
+    // Update button states
+    document.getElementById(buttonPrefix + '1').className = businessNum === 1 ? 
+        "btn btn-selected select-btn mt-2" : "btn btn-select select-btn mt-2";
+    document.getElementById(buttonPrefix + '2').className = businessNum === 2 ? 
+        "btn btn-selected select-btn mt-2" : "btn btn-select select-btn mt-2";
+    
+    // Update button text
+    document.getElementById(buttonPrefix + '1').innerHTML = businessNum === 1 ? 
+        '<i class="fas fa-check mr-1"></i> Selected' : 'Select';
+    document.getElementById(buttonPrefix + '2').innerHTML = businessNum === 2 ? 
+        '<i class="fas fa-check mr-1"></i> Selected' : 'Select';
+    
+    // Update the value in the merged field
+    const business1 = {
+        'merged_name': {{ business1.get('Business Name', '')|tojson }},
+        'merged_type': {{ business1.get('Type', '')|tojson }},
+        'merged_location': {{ business1.get('Location', '')|tojson }},
+        'merged_region': {{ business1.get('Region', '')|tojson }},
+        'merged_website': {{ business1.get('Website', '')|tojson }},
+        'merged_description': {{ business1.get('Description', '')|tojson }},
+        'merged_contact': {{ business1.get('Contact Info', '')|tojson }}
+    };
+    
+    const business2 = {
+        'merged_name': {{ business2.get('Business Name', '')|tojson }},
+        'merged_type': {{ business2.get('Type', '')|tojson }},
+        'merged_location': {{ business2.get('Location', '')|tojson }},
+        'merged_region': {{ business2.get('Region', '')|tojson }},
+        'merged_website': {{ business2.get('Website', '')|tojson }},
+        'merged_description': {{ business2.get('Description', '')|tojson }},
+        'merged_contact': {{ business2.get('Contact Info', '')|tojson }}
+    };
+    
+    // Only update if the field hasn't been manually edited
+    const mergedField = document.getElementById(fieldName);
+    if (!mergedField.classList.contains('edited-field')) {
+        mergedField.value = businessNum === 1 ? (business1[fieldName] || '') : (business2[fieldName] || '');
+    }
+}
+</script>
+{% endblock %}

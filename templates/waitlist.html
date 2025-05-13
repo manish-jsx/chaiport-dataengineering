@@ -1,0 +1,143 @@
+{% extends "base.html" %}
+{% block title %}Join Waitlist{% endblock %}
+
+{% block head_extra %}
+<style>
+    .waitlist-container {
+        max-width: 650px;
+        margin: 0 auto;
+        padding: 30px;
+        background-color: #fff;
+        box-shadow: 0 0 20px rgba(0,0,0,0.1);
+        border-radius: 10px;
+    }
+    
+    .waitlist-header {
+        text-align: center;
+        margin-bottom: 30px;
+    }
+    
+    .waitlist-header h1 {
+        color: #28a745;
+        font-weight: 700;
+        margin-bottom: 15px;
+    }
+    
+    .waitlist-header p {
+        color: #6c757d;
+        font-size: 1.1rem;
+    }
+    
+    .interests-container {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 15px;
+    }
+    
+    .interest-checkbox {
+        display: flex;
+        align-items: center;
+        background: #f8f9fa;
+        padding: 10px 15px;
+        border-radius: 20px;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+    
+    .interest-checkbox:hover {
+        background: #e9ecef;
+    }
+    
+    .interest-checkbox input {
+        margin-right: 8px;
+    }
+    
+    .submit-btn {
+        margin-top: 25px;
+        padding: 12px 30px;
+        font-size: 1.1rem;
+        font-weight: 600;
+    }
+    
+    .newsletter-checkbox {
+        margin-top: 20px;
+        padding: 15px;
+        background: #f8f9fa;
+        border-radius: 5px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="waitlist-container">
+        <div class="waitlist-header">
+            <h1><i class="fas fa-leaf mr-2"></i> Join the Chaiport Waitlist</h1>
+            <p>Be the first to know when we launch. Get early access to our platform and exclusive offers.</p>
+        </div>
+        
+        {% if success_message %}
+        <div class="alert alert-success">
+            <i class="fas fa-check-circle mr-2"></i> {{ success_message }}
+        </div>
+        {% endif %}
+        
+        <form method="POST" action="{{ url_for('waitlist') }}">
+            <div class="form-group">
+                <label for="email"><i class="fas fa-envelope mr-2"></i>Email</label>
+                <input type="email" class="form-control" id="email" name="email" placeholder="you@example.com" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="name"><i class="fas fa-user mr-2"></i>Name</label>
+                <input type="text" class="form-control" id="name" name="name" placeholder="Your name" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="role"><i class="fas fa-briefcase mr-2"></i>Your Role</label>
+                <select class="form-control" id="role" name="role" required>
+                    <option value="" selected disabled>Select your role</option>
+                    <option value="Tea Producer">Tea Producer</option>
+                    <option value="Tea Trader">Tea Trader</option>
+                    <option value="Tea Retailer">Tea Retailer</option>
+                    <option value="Distributor">Distributor</option>
+                    <option value="Consultant">Consultant</option>
+                    <option value="Other">Other</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label><i class="fas fa-tags mr-2"></i>Interests (Select all that apply)</label>
+                <div class="interests-container">
+                    <label class="interest-checkbox">
+                        <input type="checkbox" name="interests" value="Selling"> Selling
+                    </label>
+                    <label class="interest-checkbox">
+                        <input type="checkbox" name="interests" value="Buying"> Buying
+                    </label>
+                    <label class="interest-checkbox">
+                        <input type="checkbox" name="interests" value="Networking"> Networking
+                    </label>
+                    <label class="interest-checkbox">
+                        <input type="checkbox" name="interests" value="Learning"> Learning
+                    </label>
+                </div>
+            </div>
+            
+            <div class="newsletter-checkbox">
+                <div class="custom-control custom-checkbox">
+                    <input type="checkbox" class="custom-control-input" id="subscribe_newsletter" name="subscribe_newsletter" checked>
+                    <label class="custom-control-label" for="subscribe_newsletter">
+                        Subscribe to our newsletter for updates
+                    </label>
+                </div>
+            </div>
+            
+            <button type="submit" class="btn btn-success btn-block submit-btn">
+                <i class="fas fa-paper-plane mr-2"></i>Join Waitlist
+            </button>
+        </form>
+    </div>
+</div>
+{% endblock %}

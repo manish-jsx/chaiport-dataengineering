@@ -1,0 +1,413 @@
+{% extends "base.html" %}
+{% block title %}Tea Business Navigator{% endblock %}
+
+{% block head_extra %}
+<style>
+    .business-card {
+        height: 100%;
+        transition: transform 0.2s;
+        border-radius: 8px;
+        overflow: hidden;
+    }
+    .business-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+    }
+    .business-card .card-img-top {
+        height: 160px;
+        object-fit: cover;
+        background-color: #f8f9fa;
+    }
+    .business-card .card-body {
+        display: flex;
+        flex-direction: column;
+    }
+    .business-card .card-text {
+        flex-grow: 1;
+    }
+    .business-card .badge {
+        font-weight: 500;
+    }
+    .search-container {
+        background-color: #f8f9fa;
+        padding: 20px;
+        margin-bottom: 20px;
+        border-radius: 5px;
+    }
+    .filter-sidebar {
+        position: sticky;
+        top: 80px; /* Space for navbar */
+        max-height: calc(100vh - 100px);
+        overflow-y: auto;
+        padding: 15px;
+        background-color: #f8f9fa;
+        border-radius: 8px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        z-index: 100;
+        transition: all 0.3s ease;
+    }
+
+    .filter-sidebar::-webkit-scrollbar {
+        width: 6px;
+    }
+    
+    .filter-sidebar::-webkit-scrollbar-track {
+        background: #f1f1f1;
+        border-radius: 10px;
+    }
+    
+    .filter-sidebar::-webkit-scrollbar-thumb {
+        background: #c1c1c1;
+        border-radius: 10px;
+    }
+    
+    .filter-sidebar::-webkit-scrollbar-thumb:hover {
+        background: #a8a8a8;
+    }
+    
+    .filter-header {
+        border-bottom: 2px solid #e9ecef;
+        margin-bottom: 15px;
+        padding-bottom: 10px;
+        font-weight: bold;
+    }
+    
+    .filter-section {
+        margin-bottom: 20px;
+    }
+    
+    .filter-section-title {
+        font-weight: 600;
+        margin-bottom: 10px;
+    }
+    
+    .filter-badge {
+        margin-top: 10px;
+        margin-bottom: 5px;
+    }
+    
+    .business-card {
+        height: 100%;
+        transition: transform 0.2s;
+    }
+    
+    .business-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    }
+    
+    .pagination-container {
+        margin-top: 30px;
+        margin-bottom: 20px;
+    }
+    
+    /* For mobile screens - filter appears at top with expand/collapse */
+    @media (max-width: 767px) {
+        .filter-sidebar {
+            position: relative;
+            top: 0;
+            max-height: none;
+            margin-bottom: 15px;
+            overflow: hidden;
+        }
+        
+        .filter-sidebar.collapsed {
+            max-height: 60px;
+        }
+        
+        .filter-toggle {
+            display: block;
+            width: 100%;
+            text-align: center;
+            padding: 5px;
+            background: #e9ecef;
+            cursor: pointer;
+            border-radius: 0 0 8px 8px;
+        }
+        
+        .filters-inner {
+            padding-bottom: 40px;
+        }
+    }
+    
+    @media (min-width: 768px) {
+        .filter-toggle {
+            display: none;
+        }
+    }
+    .page-footer {
+        background-color: #343a40;
+        color: #ffffff;
+        padding: 15px 0;
+        margin-top: 50px;
+    }
+    .filter-item {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 100%;
+        display: block;
+    }
+    .clear-filters {
+        margin-top: 20px;
+    }
+    .tea-marker {
+        color: #28a745;
+        margin-right: 5px;
+    }
+    .selected-filters {
+        padding: 10px 0;
+        font-size: 0.9rem;
+    }
+    .selected-filters .badge {
+        margin-right: 5px;
+        background-color: #4CAF50;
+    }
+    .result-count {
+        margin-bottom: 15px;
+        font-style: italic;
+        color: #6c757d;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- Search Bar -->
+<div class="search-container">
+    <form method="GET" action="{{ url_for('business_navigator') }}">
+        <div class="row">
+            <div class="col-md-10">
+                <div class="input-group">
+                    <input type="text" class="form-control" name="query" placeholder="Search for tea businesses..." value="{{ search_query }}" aria-label="Search">
+                    <!-- Preserve selected filters when searching -->
+                    {% if selected_region %}
+                    <input type="hidden" name="region" value="{{ selected_region }}">
+                    {% endif %}
+                    {% if selected_type %}
+                    <input type="hidden" name="type" value="{{ selected_type }}">
+                    {% endif %}
+                    {% if selected_location %}
+                    <input type="hidden" name="location" value="{{ selected_location }}">
+                    {% endif %}
+                    <div class="input-group-append">
+                        <button class="btn btn-primary" type="submit"><i class="fas fa-search"></i> Search</button>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-2">
+                <a href="{{ url_for('business_navigator') }}" class="btn btn-outline-secondary w-100">Clear All</a>
+            </div>
+        </div>
+    </form>
+</div>
+
+<div class="row">
+    <!-- Filter Sidebar -->
+    <div class="col-md-3 mb-4">
+        <div class="filter-sidebar" id="filterSidebar">
+            <div class="filters-inner">
+                <div class="filter-header">
+                    <i class="fas fa-filter mr-2"></i> Filters
+                    {% if search_query or selected_region or selected_type or selected_location %}
+                        <a href="{{ url_for('business_navigator') }}" class="btn btn-sm btn-outline-secondary float-right">
+                            <i class="fas fa-times"></i> Clear
+                        </a>
+                    {% endif %}
+                </div>
+                
+                <form action="{{ url_for('business_navigator') }}" method="GET">
+                    <div class="filter-section">
+                        <div class="filter-section-title">Search</div>
+                        <div class="input-group">
+                            <input type="text" class="form-control" name="query" placeholder="Search..." 
+                                value="{{ search_query }}" aria-label="Search">
+                            <div class="input-group-append">
+                                <button class="btn btn-outline-secondary" type="submit">
+                                    <i class="fas fa-search"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    {% if search_query %}
+                        <div class="filter-badge">
+                            <span class="badge badge-primary">
+                                <i class="fas fa-search mr-1"></i> "{{ search_query }}"
+                            </span>
+                        </div>
+                    {% endif %}
+                    
+                    <div class="filter-section">
+                        <div class="filter-section-title">Region</div>
+                        <select class="form-control" name="region" onchange="this.form.submit()">
+                            <option value="">All Regions</option>
+                            {% for region in filter_options.regions %}
+                                <option value="{{ region }}" {% if region == selected_region %}selected{% endif %}>
+                                    {{ region }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div class="filter-section">
+                        <div class="filter-section-title">Business Type</div>
+                        <select class="form-control" name="type" onchange="this.form.submit()">
+                            <option value="">All Types</option>
+                            {% for type in filter_options.types %}
+                                <option value="{{ type }}" {% if type == selected_type %}selected{% endif %}>
+                                    {{ type }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div class="filter-section">
+                        <div class="filter-section-title">Location</div>
+                        <select class="form-control" name="location" onchange="this.form.submit()">
+                            <option value="">All Locations</option>
+                            {% for location in filter_options.locations %}
+                                <option value="{{ location }}" {% if location == selected_location %}selected{% endif %}>
+                                    {{ location }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    {% if selected_region or selected_type or selected_location %}
+                        <div class="filter-badge">
+                            {% if selected_region %}
+                                <span class="badge badge-info">
+                                    <i class="fas fa-globe mr-1"></i> {{ selected_region }}
+                                </span>
+                            {% endif %}
+                            
+                            {% if selected_type %}
+                                <span class="badge badge-success">
+                                    <i class="fas fa-tag mr-1"></i> {{ selected_type }}
+                                </span>
+                            {% endif %}
+                            
+                            {% if selected_location %}
+                                <span class="badge badge-warning">
+                                    <i class="fas fa-map-marker-alt mr-1"></i> {{ selected_location }}
+                                </span>
+                            {% endif %}
+                        </div>
+                    {% endif %}
+                </form>
+            </div>
+            <div class="filter-toggle" onclick="toggleFilters()">
+                <i class="fas fa-chevron-down" id="filterToggleIcon"></i>
+            </div>
+        </div>
+    </div>
+
+    <!-- Business Grid -->
+    <div class="col-md-9">
+        <!-- Results Count -->
+        <div class="result-count">
+            <p>Showing {{ businesses|length }} of {{ total_count }} results</p>
+        </div>
+
+        {% if businesses %}
+        <div class="row">
+            {% for business in businesses %}
+            <div class="col-md-4 mb-4">
+                <div class="card business-card">
+                    <div class="card-img-top d-flex align-items-center justify-content-center">
+                        <i class="fas fa-mug-hot fa-4x text-secondary my-3"></i>
+                    </div>
+                    <div class="card-body">
+                        <h5 class="card-title">{{ business.get('Business Name', 'N/A') }}</h5>
+                        <span class="badge badge-info mb-2">{{ business.get('Type', 'N/A') }}</span>
+                        <p class="card-text">
+                            {% if business.get('Description') %}
+                                {{ business.get('Description', '')[:100] }}...
+                            {% else %}
+                                <em>No description available</em>
+                            {% endif %}
+                        </p>
+                        <p class="card-text small">
+                            <i class="fas fa-map-marker-alt"></i> {{ business.get('Location', 'N/A') }}, {{ business.get('Region', 'N/A') }}
+                        </p>
+                        <a href="{{ url_for('business_detail', business_id=business['_id']) }}" class="btn btn-sm btn-outline-primary">View Details</a>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        <!-- Pagination -->
+        {% if total_pages > 1 %}
+        <nav aria-label="Business navigation">
+            <ul class="pagination justify-content-center">
+                {% if page > 1 %}
+                <li class="page-item">
+                    <a class="page-link" href="{{ url_for('business_navigator', page=page-1, query=search_query, type=selected_type, region=selected_region, location=selected_location) }}">
+                        Previous
+                    </a>
+                </li>
+                {% endif %}
+
+                {% for p in range(1, total_pages + 1) %}
+                    {% if p >= page - 2 and p <= page + 2 %}
+                    <li class="page-item {% if p == page %}active{% endif %}">
+                        <a class="page-link" href="{{ url_for('business_navigator', page=p, query=search_query, type=selected_type, region=selected_region, location=selected_location) }}">
+                            {{ p }}
+                        </a>
+                    </li>
+                    {% endif %}
+                {% endfor %}
+                
+                {% if page < total_pages %}
+                <li class="page-item">
+                    <a class="page-link" href="{{ url_for('business_navigator', page=page+1, query=search_query, type=selected_type, region=selected_region, location=selected_location) }}">
+                        Next
+                    </a>
+                </li>
+                {% endif %}
+            </ul>
+        </nav>
+        {% endif %}
+        {% else %}
+        <div class="alert alert-info">
+            <i class="fas fa-info-circle"></i> No businesses found matching your criteria. Try adjusting your filters.
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block footer %}
+<footer class="page-footer">
+    <div class="container text-center">
+        <p>Powered by <a href="https://chaiport.in" target="_blank" class="text-white"><strong>chaiport.in</strong></a> | Tea Business Knowledge Graph</p>
+    </div>
+</footer>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // For mobile view - toggle filter section visibility
+    function toggleFilters() {
+        const sidebar = document.getElementById('filterSidebar');
+        const icon = document.getElementById('filterToggleIcon');
+        
+        sidebar.classList.toggle('collapsed');
+        
+        if (sidebar.classList.contains('collapsed')) {
+            icon.className = 'fas fa-chevron-down';
+        } else {
+            icon.className = 'fas fa-chevron-up';
+        }
+    }
+    
+    // Initialize collapsed state on mobile
+    document.addEventListener('DOMContentLoaded', function() {
+        if (window.innerWidth < 768) {
+            document.getElementById('filterSidebar').classList.add('collapsed');
+        }
+    });
+</script>
+{% endblock %}

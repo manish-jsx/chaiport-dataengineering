@@ -1,0 +1,19 @@
+Flask>=2.0
+pandas>=1.0
+# For actual vector embedding generation (uncomment if you can install)
+sentence-transformers>=2.2.0
+# For MongoDB with Atlas Search capabilities
+pymongo>=4.0.0
+# For LLM integration (examples, uncomment as needed)
+# openai>=0.27.0
+# transformers>=4.0.0 
+# accelerate # Often needed by transformers for faster model loading
+torch>=1.8.0 # Often a dependency for sentence-transformers and transformers
+# For string similarity in duplicate detection (optional)
+# fuzzywuzzy>=0.18.0
+# python-levenshtein>=0.12.0 # Often speeds up fuzzywuzzy
+
+# --- For Production Deployment (Examples) ---
+gunicorn # For Linux/macOS
+# waitress # For Windows or as a simpler alternative
+python-dotenv
