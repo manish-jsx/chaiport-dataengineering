@@ -1,0 +1,15 @@
+backend:
+    functions:
+        - entry: flask_app.py
+          handler: handler
+          name: function-flask
+          path: .
+          type: httpServer
+    language:
+        name: python
+        packageManager: pip
+        runtime: python3.13.x
+    path: .
+name: chaiport-dataengineering
+region: us-east-1
+yamlVersion: 2
